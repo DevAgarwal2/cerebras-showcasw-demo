@@ -1,0 +1,2593 @@
+---
+const model = import.meta.env.GEMMA_MODEL ?? 'gemma-4-31b-it';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Bill of Vision — Video → Bill of Materials</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="page-grain" aria-hidden="true"></div>
+
+    <main class="shell">
+      <header class="masthead">
+        <div class="masthead-left">
+          <div class="seal" aria-hidden="true">
+            <svg viewBox="0 0 32 32" width="32" height="32">
+              <circle cx="16" cy="16" r="14.5" fill="none" stroke="currentColor" stroke-width="1" />
+              <circle cx="16" cy="16" r="9" fill="none" stroke="currentColor" stroke-width="1" />
+              <path d="M16 2 L16 30 M2 16 L30 16" stroke="currentColor" stroke-width="0.5" />
+              <text x="16" y="19" text-anchor="middle" font-family="Bricolage Grotesque" font-size="9" font-weight="700" fill="currentColor">BoV</text>
+            </svg>
+          </div>
+          <div class="masthead-text">
+            <h1 class="title">Bill of Vision</h1>
+            <p class="kicker">A video in. A bill of materials out.</p>
+          </div>
+        </div>
+      </header>
+
+      <!-- ========== STAGE A: UPLOAD (or video preview after selection) ========== -->
+      <section id="stage-upload" class="stage stage-upload">
+        <div id="upload-zone" class="upload-zone">
+          <input type="file" id="video-input" accept="video/mp4,video/webm,video/quicktime,video/*" hidden />
+          <div class="upload-inner" id="upload-inner">
+            <div class="upload-mark" aria-hidden="true">
+              <svg viewBox="0 0 48 48" width="48" height="48">
+                <rect x="6" y="10" width="36" height="26" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" />
+                <path d="M6 28 L20 20 L28 24 L42 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                <circle cx="34" cy="18" r="2" fill="currentColor" />
+                <path d="M22 42 L26 42 M24 36 L24 42" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+              </svg>
+            </div>
+            <p class="upload-text">Drop a video into the frame, or <button type="button" id="browse" class="text-link">browse the cabinet</button>.</p>
+            <p class="upload-hint">MP4 · WebM · MOV &nbsp;·&nbsp; up to 100&nbsp;MB &nbsp;·&nbsp; best under 45s</p>
+            <div class="sample-shelf">
+              <span class="shelf-label">Or open a specimen:</span>
+              <div class="sample-buttons">
+                <button type="button" class="specimen-btn" data-sample="/samples/nameplate-jp.mp4" data-name="nameplate-jp"><span class="specimen-emoji">🈁</span> Kanji Nameplate</button>
+                <button type="button" class="specimen-btn" data-sample="/samples/excavator.mp4" data-name="excavator"><span class="specimen-emoji">🏗</span> Excavator</button>
+                <button type="button" class="specimen-btn" data-sample="/samples/komatsu-jp.mp4" data-name="komatsu-jp"><span class="specimen-emoji">🇯🇵</span> Komatsu JP (nameplate)</button>
+                <button type="button" class="specimen-btn" data-sample="/samples/car-engine.mp4" data-name="car-engine"><span class="specimen-emoji">🚗</span> Car Engine</button>
+                <button type="button" class="specimen-btn" data-sample="/samples/cnc-machine.mp4" data-name="cnc"><span class="specimen-emoji">🏭</span> Mazak VMC</button>
+                <button type="button" class="specimen-btn" data-sample="/samples/factory-robots.mp4" data-name="factory-robots"><span class="specimen-emoji">🤖</span> Factory Robots</button>
+                <button type="button" class="specimen-btn" data-sample="/samples/robot-welding.mp4" data-name="robot-welding"><span class="specimen-emoji">🔧</span> Robot Welding</button>
+                <button type="button" class="specimen-btn" data-sample="/samples/3d-printer.mp4" data-name="3d-printer"><span class="specimen-emoji">🖨</span> 3D Printer</button>
+                <button type="button" class="specimen-btn" data-sample="/samples/surgical-robot.mp4" data-name="surgical-robot"><span class="specimen-emoji">🏥</span> Surgical Robot</button>
+                <button type="button" class="specimen-btn" data-sample="/samples/mri-scanner.mp4" data-name="mri-scanner"><span class="specimen-emoji">📡</span> MRI Scanner</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Video preview + frame plan (revealed after file selected) -->
+        <div id="preview-zone" class="preview-zone" hidden>
+          <div class="preview-header">
+            <div class="preview-meta">
+              <span class="kicker">Loaded specimen</span>
+              <span class="preview-name" id="preview-name">—</span>
+            </div>
+            <div class="preview-stats" id="preview-stats">
+              <span class="stat-chip"><span class="chip-lbl">Size</span><span class="chip-val" id="preview-size">—</span></span>
+              <span class="stat-chip"><span class="chip-lbl">Format</span><span class="chip-val" id="preview-type">—</span></span>
+            </div>
+            <button type="button" id="reset-preview" class="ghost-btn">Choose a different video</button>
+          </div>
+          <div class="preview-body">
+            <div class="video-frame">
+              <video id="video-preview" controls preload="metadata" playsinline crossorigin="anonymous"></video>
+            </div>
+            <aside class="frame-strip-wrap">
+              <div class="frame-strip-head">
+                <span class="kicker">Extraction plan</span>
+                <p class="strip-explain">Twelve frames will be lifted from this video and sent to the four agents. We sample evenly across the middle 90% of the clip &mdash; skipping fades and outros.</p>
+              </div>
+              <div class="frame-strip" id="frame-strip">
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <div class="frame-slot" data-index={i}>
+                    <span class="frame-num">{String(i + 1).padStart(2, '0')}</span>
+                    <span class="frame-ts" data-ts>—</span>
+                  </div>
+                ))}
+              </div>
+              <button type="button" id="run-btn" class="run-btn">
+                <span class="run-btn-label">Run the four agents</span>
+                <span class="run-btn-arrow" aria-hidden="true">→</span>
+              </button>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== STAGE B: PROGRESS ========== -->
+      <section id="stage-progress" class="stage stage-progress" hidden>
+        <div class="progress-head">
+          <div>
+            <span class="kicker">Pipeline running</span>
+            <h2 class="progress-title" id="progress-title">Working on your specimen…</h2>
+          </div>
+          <div class="progress-summary">
+            <span class="kicker">Live status</span>
+            <span class="progress-status" id="progress-status">Warming up…</span>
+          </div>
+        </div>
+
+        <ol class="agents-board" id="agents-board">
+          <li class="agent-card" data-agent="detector">
+            <div class="agent-head">
+              <span class="agent-ord">01</span>
+              <span class="agent-icon" aria-hidden="true">◐</span>
+              <span class="agent-name">Part Detector</span>
+            </div>
+            <p class="agent-brief">Identifies every visible component across the twelve frames.</p>
+            <p class="agent-summary" data-summary></p>
+            <div class="agent-foot">
+              <span class="agent-status">queued</span>
+              <span class="agent-latency"></span>
+            </div>
+            <div class="agent-bar"><div class="agent-bar-fill"></div></div>
+          </li>
+          <li class="agent-card" data-agent="geometry">
+            <div class="agent-head">
+              <span class="agent-ord">02</span>
+              <span class="agent-icon" aria-hidden="true">◑</span>
+              <span class="agent-name">Geometry Agent</span>
+            </div>
+            <p class="agent-brief">Estimates scale, dimensions, mass, and dominant materials.</p>
+            <p class="agent-summary" data-summary></p>
+            <div class="agent-foot">
+              <span class="agent-status">queued</span>
+              <span class="agent-latency"></span>
+            </div>
+            <div class="agent-bar"><div class="agent-bar-fill"></div></div>
+          </li>
+          <li class="agent-card" data-agent="mapper">
+            <div class="agent-head">
+              <span class="agent-ord">03</span>
+              <span class="agent-icon" aria-hidden="true">◒</span>
+              <span class="agent-name">BOM Mapper</span>
+            </div>
+            <p class="agent-brief">Resolves each part name to a canonical <a href="https://bomwiki.com" target="_blank" rel="noreferrer">bomwiki.com</a> slug.</p>
+            <p class="agent-summary" data-summary></p>
+            <div class="agent-foot">
+              <span class="agent-status">queued</span>
+              <span class="agent-latency"></span>
+            </div>
+            <div class="agent-bar"><div class="agent-bar-fill"></div></div>
+          </li>
+          <li class="agent-card" data-agent="reporter">
+            <div class="agent-head">
+              <span class="agent-ord">04</span>
+              <span class="agent-icon" aria-hidden="true">◓</span>
+              <span class="agent-name">Report Builder</span>
+            </div>
+            <p class="agent-brief">Stitches parts, geometry, and bomwiki links into a hierarchical BOM, then re-ranks every URL.</p>
+            <p class="agent-summary" data-summary></p>
+            <div class="agent-foot">
+              <span class="agent-status">queued</span>
+              <span class="agent-latency"></span>
+            </div>
+            <div class="agent-bar"><div class="agent-bar-fill"></div></div>
+          </li>
+        </ol>
+
+        <div class="progress-foot">
+          <span class="kicker">Flow</span>
+          <p class="flow-line" id="flow-line">Frames are being lifted from the video with ffmpeg. Then four agents run on them.</p>
+        </div>
+      </section>
+
+      <!-- ========== STAGE C: RESULT ========== -->
+      <section id="stage-result" class="stage stage-result" hidden>
+        <!-- Product hero — single scannable row: image left, text right -->
+        <header class="result-hero">
+          <figure class="hero-art" id="hero-art">
+            <div class="hero-art-fallback" id="hero-art-fallback">
+              <span class="kicker">Product</span>
+              <span class="hero-art-loading">looking up bomwiki.com…</span>
+            </div>
+          </figure>
+          <div class="hero-text">
+            <span class="kicker">Identified specimen</span>
+            <h2 id="r-product" class="result-product">—</h2>
+            <p id="r-summary" class="result-summary">—</p>
+            <dl class="hero-stats">
+              <div class="hero-stat">
+                <dt class="hero-stat-lbl">Parts</dt>
+                <dd class="hero-stat-num" id="r-total">0</dd>
+              </div>
+              <div class="hero-stat">
+                <dt class="hero-stat-lbl">Time</dt>
+                <dd class="hero-stat-num" id="r-time">0<span class="hero-stat-unit">s</span></dd>
+              </div>
+              <div class="hero-stat">
+                <dt class="hero-stat-lbl">Frames</dt>
+                <dd class="hero-stat-num" id="r-frames">0</dd>
+              </div>
+              <div class="hero-stat">
+                <dt class="hero-stat-lbl">Sub-assemblies</dt>
+                <dd class="hero-stat-num" id="r-groups">0</dd>
+              </div>
+            </dl>
+          </div>
+        </header>
+
+        <!-- Frame strip — compact, single row, 6 cols, hover-to-zoom -->
+        <section class="frames-card">
+          <header class="card-head">
+            <h3>What the agents saw</h3>
+            <span class="card-sub" id="frames-sub">12 frames lifted from the video</span>
+          </header>
+          <div class="frames-strip" id="frames-strip">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <figure class="frame-tile" data-index={i}>
+                <div class="frame-tile-img" data-thumb>
+                  <span class="frame-tile-num">{String(i + 1).padStart(2, '0')}</span>
+                </div>
+                <figcaption class="frame-tile-cap">
+                  <span class="frame-tile-ts" data-ts>—</span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
+
+        <!-- BOM — the main event -->
+        <section class="bom-card">
+          <header class="card-head">
+            <h3>Bill of Materials</h3>
+            <span class="card-sub" id="bom-sub">—</span>
+          </header>
+          <!-- Sticky active-frame indicator. Hidden by default; shown when
+               the user clicks a frame tile. Sticks to the top of the card
+               while scrolling, so the user always knows which frame they
+               last clicked. -->
+          <div id="active-frame-bar" class="active-frame-bar" hidden>
+            <span class="active-frame-dot" aria-hidden="true"></span>
+            <span class="active-frame-label">Showing parts from</span>
+            <span class="active-frame-id" id="active-frame-id">frame 00</span>
+            <span class="active-frame-ts" id="active-frame-ts">—</span>
+            <span class="active-frame-count" id="active-frame-count">0 parts</span>
+            <button type="button" id="active-frame-clear" class="active-frame-clear">clear</button>
+          </div>
+          <div id="bom-tree" class="bom-tree"></div>
+        </section>
+
+        <!-- Footer row: geometry + notes, side by side -->
+        <div class="result-bottom">
+          <article class="meta-card">
+            <header class="card-head">
+              <h3>Geometry</h3>
+            </header>
+            <div class="geometry-grid" id="r-geometry">
+              <p class="empty-line">—</p>
+            </div>
+          </article>
+          <article class="meta-card">
+            <header class="card-head">
+              <h3>Notes from the run</h3>
+            </header>
+            <p class="meta-notes" id="r-notes">—</p>
+          </article>
+        </div>
+
+        <div class="result-actions">
+          <button type="button" id="new-run" class="ghost-btn">Run a different video</button>
+          <button type="button" id="export-json" class="ghost-btn">Export full result as JSON</button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="colophon">
+      <div class="colophon-inner">
+        <span>Bill of Vision</span>
+        <span class="colophon-dot">·</span>
+        <span>Model <code>{model}</code></span>
+        <span class="colophon-dot">·</span>
+        <span>4-agent pipeline</span>
+        <span class="colophon-dot">·</span>
+        <span>176,882 bomwiki slugs</span>
+        <span class="colophon-dot">·</span>
+        <span>Built for a hackathon.</span>
+      </div>
+    </footer>
+
+    <script>
+      type AgentName = 'detector' | 'geometry' | 'mapper' | 'reporter';
+      type Stage = 'upload' | 'progress' | 'result';
+
+      // ---- DOM ----
+      const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+      const stageUpload = $('stage-upload');
+      const stageProgress = $('stage-progress');
+      const stageResult = $('stage-result');
+      const uploadZone = $('upload-zone');
+      const uploadInner = $('upload-inner');
+      const browseBtn = $('browse');
+      const videoInput = $<HTMLInputElement>('video-input');
+      const previewZone = $('preview-zone');
+      const videoPreview = $<HTMLVideoElement>('video-preview');
+      const previewName = $('preview-name');
+      const previewSize = $('preview-size');
+      const previewType = $('preview-type');
+      const resetPreview = $('reset-preview');
+      const runBtn = $('run-btn');
+      const frameStrip = $('frame-strip');
+      const newRunBtn = $('new-run');
+      const exportJsonBtn = $('export-json');
+      const progressStatus = $('progress-status');
+      const progressTitle = $('progress-title');
+      const flowLine = $('flow-line');
+
+      let pendingFile: File | null = null;
+      let pendingObjectUrl: string | null = null;
+      let lastResult: any = null;
+      let extractionTimestamps: number[] = [];
+
+      // ---- Agent card state ----
+      function setAgent(name: AgentName, status: 'queued' | 'running' | 'done' | 'error', latency = '', summary = '') {
+        const card = document.querySelector(`[data-agent="${name}"]`);
+        if (!card) return;
+        card.classList.remove('is-queued', 'is-running', 'is-done', 'is-error');
+        card.classList.add(`is-${status}`);
+        const statusEl = card.querySelector('.agent-status') as HTMLElement;
+        const latEl = card.querySelector('.agent-latency') as HTMLElement;
+        const summaryEl = card.querySelector('[data-summary]') as HTMLElement;
+        const fill = card.querySelector('.agent-bar-fill') as HTMLElement;
+        statusEl.textContent = status;
+        latEl.textContent = latency;
+        summaryEl.textContent = summary;
+        if (status === 'done') fill.style.width = '100%';
+        else if (status === 'running') fill.style.width = '55%';
+        else if (status === 'error') fill.style.width = '100%';
+        else fill.style.width = '4%';
+      }
+
+      function resetAgents() {
+        (['detector', 'geometry', 'mapper', 'reporter'] as AgentName[]).forEach((n) =>
+          setAgent(n, 'queued', '', '')
+        );
+      }
+
+      function showStage(s: Stage) {
+        stageUpload.hidden = s !== 'upload';
+        stageProgress.hidden = s !== 'progress';
+        stageResult.hidden = s !== 'result';
+        if (s === 'result') {
+          stageResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+
+      // ---- File selection ----
+      function humanSize(bytes: number): string {
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+      }
+
+      function planTimestamps(duration: number, frameCount = 12): number[] {
+        const startOffset = Math.min(0.5, duration * 0.05);
+        const endOffset = Math.max(startOffset + 0.1, duration - duration * 0.05);
+        const usable = Math.max(0.1, endOffset - startOffset);
+        const out: number[] = [];
+        for (let i = 0; i < frameCount; i++) {
+          const t = startOffset + (usable * i) / Math.max(1, frameCount - 1);
+          out.push(Number(t.toFixed(2)));
+        }
+        return out;
+      }
+
+      function showPreview(file: File) {
+        pendingFile = file;
+        if (pendingObjectUrl) URL.revokeObjectURL(pendingObjectUrl);
+        pendingObjectUrl = URL.createObjectURL(file);
+        videoPreview.src = pendingObjectUrl;
+        previewName.textContent = file.name;
+        previewSize.textContent = humanSize(file.size);
+        previewType.textContent = (file.type || 'video/mp4').replace('video/', '').toUpperCase();
+        uploadZone.hidden = true;
+        previewZone.hidden = false;
+        frameStrip.querySelectorAll<HTMLElement>('.frame-ts').forEach((el) => (el.textContent = '—'));
+        videoPreview.load();
+      }
+
+      function resetToUpload() {
+        pendingFile = null;
+        if (pendingObjectUrl) URL.revokeObjectURL(pendingObjectUrl);
+        pendingObjectUrl = null;
+        videoPreview.removeAttribute('src');
+        videoPreview.load();
+        videoInput.value = '';
+        uploadZone.hidden = false;
+        previewZone.hidden = true;
+        showStage('upload');
+      }
+
+      videoPreview.addEventListener('loadedmetadata', () => {
+        const d = videoPreview.duration;
+        if (!isFinite(d) || d <= 0) return;
+        extractionTimestamps = planTimestamps(d, 12);
+        const slots = frameStrip.querySelectorAll<HTMLElement>('.frame-ts');
+        slots.forEach((el, i) => {
+          el.textContent = `${extractionTimestamps[i].toFixed(1)}s`;
+        });
+      });
+
+      browseBtn.addEventListener('click', () => videoInput.click());
+      uploadInner.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).closest('.specimen-btn')) return;
+        videoInput.click();
+      });
+
+      document.querySelectorAll<HTMLButtonElement>('.specimen-btn').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const url = btn.dataset.sample!;
+          const name = btn.dataset.name ?? 'sample.mp4';
+          progressStatus.textContent = `Fetching ${name}…`;
+          showStage('upload');
+          resetToUpload();
+          try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const blob = await res.blob();
+            const file = new File([blob], `${name}.mp4`, { type: blob.type || 'video/mp4' });
+            showPreview(file);
+          } catch (err) {
+            progressStatus.textContent = `Could not load sample: ${err instanceof Error ? err.message : String(err)}`;
+          }
+        });
+      });
+
+      ['dragover', 'dragenter'].forEach((ev) => {
+        uploadZone.addEventListener(ev, (e) => {
+          e.preventDefault();
+          uploadZone.classList.add('is-dragging');
+        });
+      });
+      ['dragleave', 'drop'].forEach((ev) => {
+        uploadZone.addEventListener(ev, () => uploadZone.classList.remove('is-dragging'));
+      });
+      uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const file = e.dataTransfer?.files?.[0];
+        if (file) showPreview(file);
+      });
+      videoInput.addEventListener('change', () => {
+        const f = videoInput.files?.[0];
+        if (f) showPreview(f);
+      });
+
+      resetPreview.addEventListener('click', resetToUpload);
+      runBtn.addEventListener('click', () => {
+        if (pendingFile) runPipeline(pendingFile);
+      });
+      newRunBtn.addEventListener('click', resetToUpload);
+      exportJsonBtn.addEventListener('click', () => {
+        if (!lastResult) return;
+        const blob = new Blob([JSON.stringify(lastResult, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `bom-${(lastResult.product || 'report').toString().toLowerCase().replace(/\s+/g, '-')}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      // ---- Pipeline (SSE) ----
+      async function runPipeline(file: File) {
+        showStage('progress');
+        resetAgents();
+        progressStatus.textContent = 'Warming up…';
+        progressTitle.textContent = 'Working on your specimen…';
+        flowLine.textContent = 'Frames are being lifted from the video with ffmpeg. Then four agents run on them.';
+
+        const fd = new FormData();
+        fd.append('video', file);
+
+        let res: Response;
+        try {
+          res = await fetch('/api/bom', { method: 'POST', body: fd });
+        } catch (e) {
+          progressStatus.textContent = `Network error: ${e instanceof Error ? e.message : String(e)}`;
+          return;
+        }
+        if (!res.ok && !res.headers.get('content-type')?.includes('text/event-stream')) {
+          try {
+            const err = await res.json();
+            progressStatus.textContent = `Error: ${err.error ?? res.statusText}`;
+          } catch {
+            progressStatus.textContent = `Error: HTTP ${res.status}`;
+          }
+          return;
+        }
+
+        const reader = res.body!.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        let resultEvent: any = null;
+        let errored = false;
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+            // SSE events are separated by blank lines
+            let idx: number;
+            while ((idx = buf.indexOf('\n\n')) !== -1) {
+              const raw = buf.slice(0, idx);
+              buf = buf.slice(idx + 2);
+              const ev = parseSSE(raw);
+              if (!ev) continue;
+              handleEvent(ev);
+              if (ev.event === 'result') resultEvent = ev.data;
+              if (ev.event === 'error') errored = true;
+            }
+          }
+        } catch (e) {
+          progressStatus.textContent = `Stream error: ${e instanceof Error ? e.message : String(e)}`;
+          return;
+        }
+
+        if (errored) return;
+        if (resultEvent) {
+          lastResult = resultEvent;
+          renderResult(resultEvent);
+        } else {
+          progressStatus.textContent = 'Pipeline ended without a result.';
+        }
+      }
+
+      function parseSSE(raw: string): { event: string; data: any } | null {
+        let event = 'message';
+        const dataLines: string[] = [];
+        for (const line of raw.split('\n')) {
+          if (line.startsWith('event:')) event = line.slice(6).trim();
+          else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+        }
+        if (dataLines.length === 0) return null;
+        try {
+          return { event, data: JSON.parse(dataLines.join('\n')) };
+        } catch {
+          return { event, data: dataLines.join('\n') };
+        }
+      }
+
+      function handleEvent(ev: { event: string; data: any }) {
+        if (ev.event === 'status') {
+          const { phase, text } = ev.data as { phase: string; text: string };
+          progressStatus.textContent = text;
+          flowLine.textContent = text;
+          progressTitle.textContent = humanizePhase(phase);
+          return;
+        }
+        if (ev.event === 'frames') {
+          const { count, extractMs } = ev.data as { count: number; extractMs: number };
+          flowLine.textContent = `Lifted ${count} frames in ${(extractMs / 1000).toFixed(1)}s. Handing them to the four agents.`;
+          return;
+        }
+        if (ev.event === 'agent') {
+          const { name, status, latency_ms, summary } = ev.data as { name: AgentName; status: 'queued' | 'running' | 'done' | 'error'; latency_ms?: number; summary?: string };
+          const lat = latency_ms && latency_ms > 0 ? `${(latency_ms / 1000).toFixed(1)}s` : '';
+          setAgent(name, status, lat, summary ?? '');
+          return;
+        }
+        if (ev.event === 'error') {
+          progressStatus.textContent = `Error: ${ev.data.error ?? 'Unknown'}`;
+          (['detector', 'geometry', 'mapper', 'reporter'] as AgentName[]).forEach((n) =>
+            setAgent(n, 'error', '—', '')
+          );
+          return;
+        }
+      }
+
+      function humanizePhase(phase: string): string {
+        switch (phase) {
+          case 'extract': return 'Lifting frames from the video…';
+          case 'phase1': return 'Detector and Geometry are running in parallel…';
+          case 'phase1b': return 'Mapper is resolving parts against bomwiki.com…';
+          case 'phase2': return 'Report Builder is composing the final BOM…';
+          default: return 'Working on your specimen…';
+        }
+      }
+
+      // ---- Result rendering ----
+      async function renderResult(data: any) {
+        // Hero
+        $('r-product').textContent = data.product ?? '—';
+        $('r-summary').textContent = data.summary ?? '—';
+        $('r-total').textContent = String(data.total_parts ?? 0);
+        $('r-time').innerHTML = `${(data.timing.total_ms / 1000).toFixed(1)}<span class="hero-stat-unit">s</span>`;
+        $('r-frames').textContent = String(data.frame_count ?? 0);
+        const bom = data.bom ?? [];
+        const groupCount = new Set(bom.map((b: any) => b.sub_assembly || 'Other')).size;
+        $('r-groups').textContent = String(groupCount);
+
+        // Frame strip — capture from the preview video
+        await renderFrameStrip();
+
+        // Product image lookup — try the bomwiki thumb URL directly.
+        // No server probe needed: <img> onload/onerror does the work.
+        const productSlug = slugify(data.product ?? '');
+        renderProductImage($('hero-art'), data.product ?? '—', productSlug);
+
+        // BOM tree — per-part cards
+        const tree = $('bom-tree');
+        tree.innerHTML = '';
+        $('bom-sub').textContent =
+          bom.length === 0
+            ? 'No parts returned'
+            : `${bom.length} entries across ${groupCount} sub-assemblies`;
+
+        const groups: Record<string, any[]> = {};
+        bom.forEach((item: any) => {
+          const g = item.sub_assembly || 'Miscellaneous';
+          (groups[g] ??= []).push(item);
+        });
+        const groupNames = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length);
+        groupNames.forEach((group) => {
+          const items = groups[group];
+          const groupEl = document.createElement('section');
+          groupEl.className = 'bom-group';
+          const head = document.createElement('header');
+          head.className = 'bom-group-head';
+          head.innerHTML = `<h4>${escape(group)}</h4><span class="bom-group-count">${items.length} part${items.length === 1 ? '' : 's'}</span>`;
+          groupEl.appendChild(head);
+          const table = buildBomTable(items);
+          groupEl.appendChild(table);
+          tree.appendChild(groupEl);
+        });
+
+        // Geometry grid (prose, not JSON)
+        renderGeometry(data.geometry);
+
+        // Notes
+        $('r-notes').textContent = data.notes ?? 'No additional notes.';
+
+        // Subtitle on the frame strip
+        $('frames-sub').textContent = `${data.frame_count ?? 12} frames lifted from the video and passed to the four agents`;
+
+        // Make the frame strip interactive: clicking a frame tile scrolls
+        // down to the parts that the agent identified from that frame and
+        // briefly highlights them. The reverse direction (part card →
+        // frame) is wired up inside buildPartCard.
+        wireFrameStrip();
+
+        showStage('result');
+      }
+
+      // Build a real <table> for a sub-assembly. Columns: Part · Qty ·
+      // Material · Confidence · Seen in · bomwiki. Rows are tagged with
+      // data-frame-index so the frame-strip click handler can find them.
+      function buildBomTable(items: any[]): HTMLElement {
+        const wrap = document.createElement('div');
+        wrap.className = 'bom-table-wrap';
+
+        const table = document.createElement('table');
+        table.className = 'bom-table';
+
+        // Header
+        const thead = document.createElement('thead');
+        const trh = document.createElement('tr');
+        const cols = ['Part', 'Qty', 'Material', 'Confidence', 'Seen in', 'bomwiki'];
+        for (const label of cols) {
+          const th = document.createElement('th');
+          th.textContent = label;
+          if (label === 'Qty') th.className = 'col-num';
+          if (label === 'Confidence') th.className = 'col-conf';
+          if (label === 'Seen in') th.className = 'col-frame';
+          if (label === 'bomwiki') th.className = 'col-bomwiki';
+          trh.appendChild(th);
+        }
+        thead.appendChild(trh);
+        table.appendChild(thead);
+
+        // Body
+        const tbody = document.createElement('tbody');
+        for (const it of items) {
+          tbody.appendChild(buildPartRow(it));
+        }
+        table.appendChild(tbody);
+
+        wrap.appendChild(table);
+        return wrap;
+      }
+
+      function buildPartRow(it: any): HTMLTableRowElement {
+        const tr = document.createElement('tr');
+        tr.className = 'bom-row';
+
+        // Tag the row with the frame index so the frame-strip click
+        // handler can find all parts that came from this frame.
+        if (typeof it.frame_index === 'number') {
+          tr.dataset.frameIndex = String(it.frame_index);
+        }
+
+        const partConf = (it.confidence ?? 0);
+        const confPct = Math.round(partConf * 100);
+        const confTone = partConf >= 0.7 ? 'good' : partConf >= 0.5 ? 'mid' : 'low';
+        const slug = it.bomwiki_url ? extractSlug(it.bomwiki_url) : '';
+        const qty = it.quantity ?? 1;
+
+        // Cell 1: Part name + note + art (try bomwiki thumb, fall back to initials)
+        const partCell = document.createElement('td');
+        partCell.className = 'col-part';
+        const partInner = document.createElement('div');
+        partInner.className = 'bom-part-inner';
+        const art = document.createElement('div');
+        art.className = 'bom-art';
+        const fallback = document.createElement('div');
+        fallback.className = 'bom-art-fallback';
+        fallback.innerHTML = `<span class="bom-art-initials">${escape(initials(it.name))}</span>`;
+        art.appendChild(fallback);
+        partInner.appendChild(art);
+        const text = document.createElement('div');
+        text.className = 'bom-text';
+        const name = document.createElement('div');
+        name.className = 'bom-name';
+        name.textContent = it.name ?? 'Unnamed part';
+        text.appendChild(name);
+        if (it.note) {
+          const note = document.createElement('div');
+          note.className = 'bom-note';
+          note.textContent = it.note;
+          text.appendChild(note);
+        }
+        // Multilingual evidence — only render when the Detector actually
+        // read text off a nameplate/label. Empty strings are skipped so a
+        // part with no readable label shows nothing (never a "—").
+        if (it.detected_text) {
+          text.appendChild(buildEvidenceLine(it));
+        }
+        partInner.appendChild(text);
+        partCell.appendChild(partInner);
+        tr.appendChild(partCell);
+
+        if (slug || it.name) {
+          findImage({
+            primarySlug: slug,
+            nameForSearch: it.name ?? '',
+            categoryForSearch: categoryForCommons(it),
+          }).then((url) => {
+            if (!url) return;
+            art.innerHTML = '';
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = it.name ?? '';
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            art.appendChild(img);
+            art.classList.add('has-image');
+          });
+        }
+
+        // Cell 2: Qty (right-aligned, tabular)
+        const qtyCell = document.createElement('td');
+        qtyCell.className = 'col-num';
+        qtyCell.textContent = String(qty);
+        tr.appendChild(qtyCell);
+
+        // Cell 3: Material (muted text or chip)
+        const matCell = document.createElement('td');
+        matCell.className = 'col-material';
+        matCell.textContent = it.material || '—';
+        tr.appendChild(matCell);
+
+        // Cell 4: Confidence bar + percentage
+        const confCell = document.createElement('td');
+        confCell.className = 'col-conf';
+        const confWrap = document.createElement('div');
+        confWrap.className = 'bom-conf';
+        const track = document.createElement('div');
+        track.className = 'bom-conf-track';
+        const fill = document.createElement('div');
+        fill.className = `bom-conf-fill bom-conf-${confTone}`;
+        fill.style.width = `${Math.max(4, confPct)}%`;
+        track.appendChild(fill);
+        confWrap.appendChild(track);
+        const confLabel = document.createElement('span');
+        confLabel.className = 'bom-conf-label';
+        confLabel.textContent = `${confPct}%`;
+        confWrap.appendChild(confLabel);
+        confCell.appendChild(confWrap);
+        tr.appendChild(confCell);
+
+        // Cell 5: Frame proof (clickable, scrolls to the frame tile)
+        const frameCell = document.createElement('td');
+        frameCell.className = 'col-frame';
+        if (typeof it.frame_index === 'number') {
+          const proof = document.createElement('button');
+          proof.type = 'button';
+          proof.className = 'bom-proof';
+          const ts = typeof it.frame_timestamp === 'number'
+            ? `${it.frame_timestamp.toFixed(1)}s`
+            : '';
+          proof.innerHTML = `<span class="bom-proof-dot" aria-hidden="true"></span>frame ${String(it.frame_index + 1).padStart(2, '0')}${ts ? ` <span class="bom-proof-ts">${ts}</span>` : ''}`;
+          proof.title = `This part was identified in frame ${it.frame_index + 1} at ${ts || '?'}`;
+          proof.addEventListener('click', () => {
+            setActiveFrame(String(it.frame_index));
+            const tile = document.querySelector(`#frames-strip .frame-tile[data-index="${it.frame_index}"]`);
+            if (tile) {
+              tile.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              tile.classList.add('is-pulsing');
+              setTimeout(() => tile.classList.remove('is-pulsing'), 600);
+            }
+          });
+          frameCell.appendChild(proof);
+        } else {
+          frameCell.innerHTML = '<span class="bom-empty">—</span>';
+        }
+        tr.appendChild(frameCell);
+
+        // Cell 6: bomwiki link
+        const linkCell = document.createElement('td');
+        linkCell.className = 'col-bomwiki';
+        if (it.bomwiki_url) {
+          const link = document.createElement('a');
+          link.className = 'bom-link';
+          link.href = it.bomwiki_url;
+          link.target = '_blank';
+          link.rel = 'noreferrer';
+          link.textContent = 'bomwiki ↗';
+          link.title = it.bomwiki_url;
+          linkCell.appendChild(link);
+        } else {
+          linkCell.innerHTML = '<span class="bom-link-empty">no entry</span>';
+        }
+        tr.appendChild(linkCell);
+
+        return tr;
+      }
+
+      // Multilingual evidence line — renders the verbatim nameplate reading
+      // the Detector pulled off the part, with its language, the English
+      // translation, and one short clause on how reading it influenced
+      // the match. Only shown when detected_text is non-empty, so parts
+      // with no legible label render nothing (never a placeholder dash).
+      function buildEvidenceLine(it: any): HTMLElement {
+        const wrap = document.createElement('div');
+        wrap.className = 'bom-evidence';
+
+        const quote = document.createElement('span');
+        quote.className = 'bom-ev-quote';
+        wrap.appendChild(quote);
+
+        const mark = document.createElement('span');
+        mark.className = 'bom-ev-mark';
+        mark.textContent = '「';
+        quote.appendChild(mark);
+
+        const txt = document.createElement('span');
+        txt.className = 'bom-ev-text';
+        const isForeign = it.detected_language && it.detected_language.toLowerCase() !== 'english';
+        if (isForeign) txt.setAttribute('lang', langCode(it.detected_language));
+        txt.textContent = String(it.detected_text);
+        quote.appendChild(txt);
+
+        const markClose = document.createElement('span');
+        markClose.className = 'bom-ev-mark';
+        markClose.textContent = '」';
+        quote.appendChild(markClose);
+
+        if (it.detected_language) {
+          const lang = document.createElement('span');
+          lang.className = 'bom-ev-lang';
+          lang.textContent = it.detected_language;
+          wrap.appendChild(lang);
+        }
+
+        if (it.translation) {
+          const arrow = document.createElement('span');
+          arrow.className = 'bom-ev-arrow';
+          arrow.textContent = '→';
+          wrap.appendChild(arrow);
+          const tr = document.createElement('span');
+          tr.className = 'bom-ev-translation';
+          tr.textContent = `"${it.translation}"`;
+          wrap.appendChild(tr);
+        }
+
+        if (it.detection_influence) {
+          const infl = document.createElement('span');
+          infl.className = 'bom-ev-infl';
+          infl.textContent = `· ${it.detection_influence}`;
+          wrap.appendChild(infl);
+        }
+
+        return wrap;
+      }
+
+      // Map a human language name to an ISO/BCP-47 lang code so the browser
+      // uses the right font fallback for CJK / Arabic / etc.
+      function langCode(name: string): string {
+        const n = String(name).toLowerCase();
+        const map: Record<string, string> = {
+          japanese: 'ja', '日本語': 'ja',
+          chinese: 'zh', '中文': 'zh', mandarin: 'zh', cantonese: 'zh-yue',
+          korean: 'ko', '한국어': 'ko',
+          arabic: 'ar', 'العربية': 'ar',
+          russian: 'ru', 'русский': 'ru',
+          german: 'de', french: 'fr', spanish: 'es', italian: 'it',
+          portuguese: 'pt', thai: 'th', 'ภาษาไทย': 'th',
+          hindi: 'hi', hebrew: 'he', greek: 'el',
+        };
+        return map[n] ?? 'und';
+      }
+
+      function renderGeometry(g: any) {
+        const target = $('r-geometry');
+        target.innerHTML = '';
+        if (!g) {
+          target.innerHTML = '<p class="empty-line">No geometry data returned.</p>';
+          return;
+        }
+        const rows: Array<[string, string]> = [];
+        if (g.scale_class) rows.push(['Scale class', g.scale_class]);
+        if (g.environment) rows.push(['Used in', g.environment]);
+        if (g.estimated_length_mm) rows.push(['Length', `${(g.estimated_length_mm / 1000).toFixed(2)} m`]);
+        if (g.estimated_width_mm) rows.push(['Width', `${(g.estimated_width_mm / 1000).toFixed(2)} m`]);
+        if (g.estimated_height_mm) rows.push(['Height', `${(g.estimated_height_mm / 1000).toFixed(2)} m`]);
+        if (g.estimated_weight_kg) rows.push(['Weight', `${g.estimated_weight_kg.toLocaleString()} kg`]);
+        if (g.primary_materials?.length) rows.push(['Materials', g.primary_materials.join(' · ')]);
+        if (rows.length === 0) {
+          target.innerHTML = '<p class="empty-line">No geometry data returned.</p>';
+          return;
+        }
+        rows.forEach(([k, v]) => {
+          const row = document.createElement('div');
+          row.className = 'geo-row';
+          row.innerHTML = `<span class="geo-k">${escape(k)}</span><span class="geo-v">${escape(v)}</span>`;
+          target.appendChild(row);
+        });
+      }
+
+      // ---- Helpers ----
+      function escape(s: string): string {
+        return String(s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+      function initials(s: string): string {
+        return s.split(/\s+/).map((w) => w[0]?.toUpperCase() ?? '').join('').slice(0, 3) || '·';
+      }
+      function slugify(s: string): string {
+        return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      }
+      function extractSlug(url: string): string {
+        const m = url.match(/item\/([^/]+)\/?/);
+        return m ? m[1] : '';
+      }
+      // Map bomwiki categories onto common search terms that have lots of
+      // Commons images, so the fallback image search has a chance even when
+      // the part name is something obscure like "Pivot Bushing".
+      function categoryForCommons(it: any): string {
+        const cat = (it.category || '').toLowerCase();
+        const sub = (it.sub_assembly || '').toLowerCase();
+        if (cat.includes('hydraulic') || sub.includes('hydraulic')) return 'hydraulic cylinder';
+        if (cat.includes('engine')) return 'engine';
+        if (cat.includes('electrical') || sub.includes('electrical')) return 'electrical wiring';
+        if (cat.includes('fastener')) return 'bolt';
+        if (cat.includes('wear')) return 'mechanical wear';
+        if (cat.includes('control') || sub.includes('control')) return 'control panel';
+        if (cat.includes('pneumatic')) return 'pneumatic cylinder';
+        if (cat.includes('fluid')) return 'pump';
+        if (sub.includes('undercarriage') || cat.includes('structural')) return 'tracked vehicle';
+        if (sub.includes('cab') || sub.includes('operator')) return 'operator cab';
+        if (sub.includes('blade') || sub.includes('front')) return 'dozer blade';
+        if (sub.includes('cooling')) return 'cooling system';
+        return '';
+      }
+      const imageCache = new Map<string, string | null>();
+
+      // Curated fallback for the product hero. bomwiki has product thumbnails
+      // for a small set of top-level products. If the LLM-identified product
+      // slug (e.g. "cnc-milling-machine") doesn't have a thumb, we try a
+      // curated alternative ("cnc-lathe") that does.
+      const PRODUCT_IMAGE_FALLBACKS: Record<string, string> = {
+        'cnc-machine': 'cnc-lathe',
+        'cnc-milling-machine': 'cnc-lathe',
+        'cnc-router': 'cnc-lathe',
+        'car-engine': 'engine',
+        'factory-robots': 'industrial-robot',
+        'robot-welding': 'arc-welding-robot',
+        '3d-printer': 'fdm-printer',
+        'surgical-robot': 'surgical-robot',
+        'mri-scanner': 'mri-scanner',
+        'dishwasher': 'dishwasher',
+        'excavator': 'excavator',
+        'bulldozer': 'bulldozer',
+      };
+      // Direct browser-side probe. Tries the bomwiki thumb URL pattern
+      // ({slug}.jpg) by setting it on an <img>; if it loads, we use it,
+      // if it errors, we keep the fallback. No server round-trip, so
+      // Cloudflare bot-blocking on the server is irrelevant.
+      function tryBomwikiThumb(slug: string): Promise<string | null> {
+        if (!slug) return Promise.resolve(null);
+        const cacheKey = `bw:${slug}`;
+        if (imageCache.has(cacheKey)) return Promise.resolve(imageCache.get(cacheKey)!);
+        return new Promise((resolve) => {
+          const probe = new Image();
+          let settled = false;
+          const done = (val: string | null) => {
+            if (settled) return;
+            settled = true;
+            imageCache.set(cacheKey, val);
+            resolve(val);
+          };
+          probe.onload = () => done(`https://bomwiki.com/img/thumb/${slug}.jpg`);
+          probe.onerror = () => done(null);
+          // 4s safety net — if bomwiki is slow, fall back rather than block UI
+          setTimeout(() => done(null), 4000);
+          probe.src = `https://bomwiki.com/img/thumb/${slug}.jpg`;
+        });
+      }
+
+      // Search Wikimedia Commons for a real photo matching the given term.
+      // Tries the bare query first, then a "mechanical" suffix to bias toward
+      // engineering photos when the bare query hits something unrelated
+      // (e.g. "Bed" alone returns bedrooms). Returns a 320px-wide thumbnail
+      // URL, or null if nothing found. CORS-friendly, no key required.
+      async function tryCommonsImage(query: string): Promise<string | null> {
+        if (!query || query.length < 3) return null;
+        const cacheKey = `cm:${query.toLowerCase()}`;
+        if (imageCache.has(cacheKey)) return Promise.resolve(imageCache.get(cacheKey)!);
+        try {
+          // 1) Search file pages matching the query
+          const searchUrl =
+            `https://commons.wikimedia.org/w/api.php?action=query&list=search` +
+            `&srsearch=${encodeURIComponent(query)}&srnamespace=6&srlimit=1&format=json`;
+          const searchRes = await fetch(searchUrl, {
+            headers: { 'Api-User-Agent': 'BillOfVision/1.0 (hackathon demo; contact: anonymous)' },
+          });
+          if (!searchRes.ok) { imageCache.set(cacheKey, null); return null; }
+          const searchData = await searchRes.json();
+          const hit = searchData?.query?.search?.[0];
+          if (!hit) { imageCache.set(cacheKey, null); return null; }
+          const title = hit.title as string;
+
+          // 2) Resolve to a 320px thumbnail URL via imageinfo
+          const infoUrl =
+            `https://commons.wikimedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}` +
+            `&prop=imageinfo&iiprop=url&iiurlwidth=320&format=json`;
+          const infoRes = await fetch(infoUrl, {
+            headers: { 'Api-User-Agent': 'BillOfVision/1.0 (hackathon demo; contact: anonymous)' },
+          });
+          if (!infoRes.ok) { imageCache.set(cacheKey, null); return null; }
+          const infoData = await infoRes.json();
+          const pages = infoData?.query?.pages ?? {};
+          const page = Object.values(pages)[0] as any;
+          const thumb = page?.imageinfo?.[0]?.thumburl;
+          imageCache.set(cacheKey, thumb ?? null);
+          return thumb ?? null;
+        } catch {
+          imageCache.set(cacheKey, null);
+          return null;
+        }
+      }
+
+      // Verify a URL is actually a loadable image (not just a 200 HTML error
+      // page that snuck through). Uses an <img> probe so CORS-OK.
+      function verifyImage(url: string): Promise<boolean> {
+        return new Promise((resolve) => {
+          const probe = new Image();
+          let settled = false;
+          const done = (ok: boolean) => {
+            if (settled) return;
+            settled = true;
+            resolve(ok);
+          };
+          probe.onload = () => done(true);
+          probe.onerror = () => done(false);
+          setTimeout(() => done(false), 4000);
+          probe.src = url;
+        });
+      }
+
+      // Unified image finder. Tries multiple sources in order, returns the
+      // first one that actually loads as an image.
+      // 1. bomwiki thumb (direct URL, no API call)
+      // 2. bomwiki curated alternative slug
+      // 3. Wikimedia Commons search by part/product name
+      // 4. Wikimedia Commons search by part's category (engine, blade, etc.)
+      async function findImage(opts: {
+        primarySlug?: string;
+        altSlug?: string | null;
+        nameForSearch: string;
+        categoryForSearch?: string;
+      }): Promise<string | null> {
+        // 1) bomwiki primary
+        if (opts.primarySlug) {
+          const u = await tryBomwikiThumb(opts.primarySlug);
+          if (u) return u;
+        }
+        // 2) bomwiki alt
+        if (opts.altSlug && opts.altSlug !== opts.primarySlug) {
+          const u = await tryBomwikiThumb(opts.altSlug);
+          if (u) return u;
+        }
+        // 3) Commons by name. The bare query is usually the best match — adding
+        // "mechanical" tends to return old engineering PDFs from Internet Archive.
+        const nameQuery = opts.nameForSearch.trim();
+        if (nameQuery) {
+          const u = await tryCommonsImage(nameQuery);
+          if (u) {
+            const ok = await verifyImage(u);
+            if (ok) return u;
+          }
+        }
+        // 4) Commons by category term
+        if (opts.categoryForSearch) {
+          const u = await tryCommonsImage(opts.categoryForSearch);
+          if (u) {
+            const ok = await verifyImage(u);
+            if (ok) return u;
+          }
+        }
+        return null;
+      }
+
+      // Render the product hero image with a 3-step image chain:
+      //   1. bomwiki thumb for the LLM-identified slug
+      //   2. bomwiki thumb for a curated alternative slug
+      //   3. Wikimedia Commons search by product name
+      // If none of those yield a real image, the typographic card stays.
+      function renderProductImage(container: HTMLElement, productName: string, productSlug: string) {
+        container.innerHTML = '';
+        const fallback = document.createElement('div');
+        fallback.className = 'hero-art-fallback';
+        fallback.innerHTML = `<span class="kicker">Product</span><span class="hero-art-name">${escape(productName)}</span>`;
+        container.appendChild(fallback);
+
+        const altSlug = PRODUCT_IMAGE_FALLBACKS[productSlug] && PRODUCT_IMAGE_FALLBACKS[productSlug] !== productSlug
+          ? PRODUCT_IMAGE_FALLBACKS[productSlug]
+          : null;
+
+        findImage({
+          primarySlug: productSlug,
+          altSlug,
+          nameForSearch: productName,
+          categoryForSearch: 'industrial machine',
+        }).then((url) => {
+          if (!url) return;
+          container.innerHTML = '';
+          const img = document.createElement('img');
+          img.src = url;
+          img.alt = productName;
+          img.loading = 'lazy';
+          img.decoding = 'async';
+          container.appendChild(img);
+          const cap = document.createElement('span');
+          cap.className = 'hero-art-cap';
+          // Credit Commons for fallback images, bomwiki for bomwiki-sourced ones
+          const isBomwiki = url.includes('bomwiki.com');
+          const creditLink = isBomwiki
+            ? `<a href="https://bomwiki.com/item/${escape(productSlug)}/" target="_blank" rel="noreferrer">bomwiki.com &rarr;</a>`
+            : `<a href="${escape(url)}" target="_blank" rel="noreferrer">Wikimedia Commons &rarr;</a>`;
+          cap.innerHTML = creditLink;
+          container.appendChild(cap);
+        });
+      }
+
+      // Capture a frame from the preview video at a given timestamp, return dataURL
+      async function captureFrame(t: number, w = 240): Promise<string> {
+        return new Promise((resolve, reject) => {
+          const v = videoPreview;
+          const onSeeked = () => {
+            v.removeEventListener('seeked', onSeeked);
+            try {
+              const canvas = document.createElement('canvas');
+              const aspect = (v.videoHeight || 9) / (v.videoWidth || 16);
+              canvas.width = w;
+              canvas.height = Math.round(w * aspect);
+              const ctx = canvas.getContext('2d');
+              if (!ctx) return reject(new Error('no ctx'));
+              ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+              resolve(canvas.toDataURL('image/jpeg', 0.7));
+            } catch (e) {
+              reject(e);
+            }
+          };
+          v.addEventListener('seeked', onSeeked, { once: true });
+          // Pausing first is more reliable for seek
+          v.pause();
+          v.currentTime = t;
+        });
+      }
+
+      // Track which frame tile is currently "active" (the one the user last
+      // clicked). The active tile stays highlighted until another tile is
+      // clicked, so the user doesn't lose track of which frame they navigated
+      // from after the page scrolls.
+      let activeFrameIndex: string | null = null;
+
+      function setActiveFrame(idx: string | null) {
+        activeFrameIndex = idx;
+
+        // Clear is-selected from every tile, then mark the active one
+        document.querySelectorAll<HTMLElement>('#frames-strip .frame-tile').forEach((t) => {
+          t.classList.toggle('is-selected', t.dataset.index === idx);
+        });
+
+        // Update the sticky bar inside the BOM card
+        const bar = $('active-frame-bar') as HTMLElement;
+        if (idx === null) {
+          bar.hidden = true;
+          return;
+        }
+        const tile = document.querySelector<HTMLElement>(`#frames-strip .frame-tile[data-index="${idx}"]`);
+        const tsEl = tile?.querySelector<HTMLElement>('[data-ts]');
+        const ts = tsEl?.textContent ?? '—';
+        const matches = document.querySelectorAll<HTMLElement>(`.bom-row[data-frame-index="${idx}"]`);
+
+        bar.hidden = false;
+        $('active-frame-id').textContent = `frame ${String(Number(idx) + 1).padStart(2, '0')}`;
+        $('active-frame-ts').textContent = ts;
+        const count = matches.length;
+        $('active-frame-count').textContent = `${count} part${count === 1 ? '' : 's'}`;
+      }
+
+      // Wire up the frame strip: clicking a frame tile marks it as the
+      // active frame (sticky highlight), scrolls down to the part rows
+      // that came from that frame, and briefly highlights them.
+      function wireFrameStrip() {
+        document.querySelectorAll<HTMLElement>('#frames-strip .frame-tile').forEach((tile) => {
+          if (tile.dataset.wired === '1') return;
+          tile.dataset.wired = '1';
+          tile.addEventListener('click', () => {
+            const idx = tile.dataset.index;
+            if (idx === undefined) return;
+            const matches = Array.from(
+              document.querySelectorAll<HTMLElement>(`.bom-row[data-frame-index="${idx}"]`)
+            );
+            if (matches.length === 0) {
+              // No parts in this frame — flash the tile and a small hint
+              tile.classList.add('is-empty');
+              setTimeout(() => tile.classList.remove('is-empty'), 800);
+              return;
+            }
+
+            // Mark this frame as active (sticky until next click)
+            setActiveFrame(idx);
+
+            // Brief pulse on the tile so the user sees the click registered
+            tile.classList.add('is-pulsing');
+            setTimeout(() => tile.classList.remove('is-pulsing'), 600);
+
+            // Scroll to the first matching row and highlight all of them
+            matches[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            matches.forEach((row, i) => {
+              setTimeout(() => {
+                row.classList.add('is-highlighted');
+                setTimeout(() => row.classList.remove('is-highlighted'), 1800);
+              }, i * 80);
+            });
+          });
+        });
+
+        // "clear" button on the sticky bar deselects the active frame
+        const clearBtn = $('active-frame-clear');
+        if (clearBtn && !clearBtn.dataset.wired) {
+          clearBtn.dataset.wired = '1';
+          clearBtn.addEventListener('click', () => setActiveFrame(null));
+        }
+      }
+
+      async function renderFrameStrip() {
+        if (!extractionTimestamps.length) return;
+        const tiles = document.querySelectorAll<HTMLElement>('#frames-strip .frame-tile');
+        const tsEls = document.querySelectorAll<HTMLElement>('#frames-strip [data-ts]');
+        // Make sure video is paused and ready
+        videoPreview.pause();
+        await new Promise<void>((res) => {
+          if (videoPreview.readyState >= 2) return res();
+          videoPreview.addEventListener('loadeddata', () => res(), { once: true });
+        });
+        for (let i = 0; i < tiles.length && i < extractionTimestamps.length; i++) {
+          tsEls[i].textContent = `${extractionTimestamps[i].toFixed(1)}s`;
+          try {
+            const url = await captureFrame(extractionTimestamps[i], 320);
+            const slot = tiles[i].querySelector('[data-thumb]') as HTMLElement;
+            slot.innerHTML = `<img src="${url}" alt="Frame ${i + 1}" /><span class="frame-tile-num">${String(i + 1).padStart(2, '0')}</span>`;
+          } catch {
+            // leave the placeholder number
+          }
+        }
+      }
+    </script>
+
+    <style>
+      /* ============================================================
+         Bill of Vision — warm, industrial, tactile
+         Light mode only. Paper, ink, drafting accents.
+         ============================================================ */
+
+      :root {
+        color-scheme: light;
+
+        --paper: oklch(97% 0.012 80);
+        --paper-edge: oklch(94% 0.018 80);
+        --paper-crease: oklch(91% 0.022 78);
+        --rule: oklch(82% 0.025 70);
+        --rule-soft: oklch(88% 0.018 72);
+
+        --ink: oklch(22% 0.025 50);
+        --ink-soft: oklch(38% 0.02 55);
+        --ink-mute: oklch(52% 0.018 60);
+
+        --sienna: oklch(58% 0.18 35);
+        --sienna-soft: oklch(78% 0.08 40);
+        --slate-blue: oklch(52% 0.12 250);
+        --moss: oklch(54% 0.14 145);
+        --amber: oklch(72% 0.16 75);
+        --rust: oklch(58% 0.18 30);
+
+        --font-display: 'Bricolage Grotesque', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+        --font-body: 'Source Serif 4', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+        --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, 'Menlo', monospace;
+
+        --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px;
+        --s-6: 32px; --s-7: 48px; --s-8: 64px; --s-9: 96px;
+      }
+
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body {
+        margin: 0; padding: 0;
+        background: var(--paper); color: var(--ink);
+        font-family: var(--font-body);
+        font-size: 16px; line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+        font-feature-settings: 'kern', 'liga', 'onum';
+      }
+      body { min-height: 100vh; display: flex; flex-direction: column; }
+      a { color: var(--slate-blue); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+      a:hover { color: var(--sienna); }
+      code { font-family: var(--font-mono); font-size: 0.85em; padding: 1px 5px; background: var(--paper-edge); border: 1px solid var(--rule); border-radius: 2px; color: var(--ink-soft); }
+
+      .page-grain {
+        position: fixed; inset: 0;
+        pointer-events: none;
+        z-index: 0;
+        background-image:
+          radial-gradient(oklch(50% 0.02 60 / 0.025) 1px, transparent 1px),
+          radial-gradient(oklch(50% 0.02 60 / 0.018) 1px, transparent 1px);
+        background-size: 3px 3px, 7px 7px;
+        background-position: 0 0, 1px 2px;
+        mix-blend-mode: multiply;
+        opacity: 0.6;
+      }
+
+      .shell {
+        position: relative; z-index: 1;
+        max-width: 1200px; width: 100%;
+        margin: 0 auto;
+        padding: var(--s-6) var(--s-5) var(--s-8);
+        display: flex; flex-direction: column;
+        gap: var(--s-6);
+      }
+
+      .colophon {
+        position: relative; z-index: 1;
+        border-top: 1px solid var(--rule);
+        background: var(--paper-edge);
+        padding: var(--s-3) var(--s-5);
+        margin-top: auto;
+        font-size: var(--t-xs, 0.75rem);
+        color: var(--ink-mute);
+      }
+      .colophon-inner {
+        max-width: 1200px; margin: 0 auto;
+        display: flex; gap: var(--s-2);
+        flex-wrap: wrap; align-items: baseline;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        letter-spacing: 0.01em;
+      }
+      .colophon-dot { color: var(--rule); }
+
+      /* ============================================================
+         MASTHEAD
+         ============================================================ */
+      .masthead {
+        display: flex;
+        align-items: center;
+        gap: var(--s-4);
+        padding-bottom: var(--s-4);
+        border-bottom: 1px solid var(--ink);
+        position: relative;
+      }
+      .masthead-left { display: flex; align-items: center; gap: var(--s-4); }
+      .masthead::after {
+        content: ''; position: absolute;
+        left: 0; right: 0; bottom: -4px;
+        height: 1px; background: var(--ink);
+      }
+      .seal { color: var(--ink); flex-shrink: 0; }
+      .masthead-text { display: flex; flex-direction: column; gap: 2px; }
+      .kicker {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--ink-mute);
+        font-weight: 500;
+      }
+      .title {
+        font-family: var(--font-display);
+        font-size: clamp(1.75rem, 3.5vw, 2.25rem);
+        font-weight: 600;
+        line-height: 1;
+        margin: 0;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+      }
+
+      /* ============================================================
+         STAGE: UPLOAD
+         ============================================================ */
+      .stage { position: relative; display: block; }
+      .stage-upload,
+      .stage-progress,
+      .stage-result { display: flex; flex-direction: column; }
+
+      .upload-zone {
+        border: 1.5px dashed var(--ink-soft);
+        background: var(--paper-edge);
+        padding: var(--s-7) var(--s-5);
+        text-align: center;
+        border-radius: 2px;
+        transition: background 200ms ease, border-color 200ms ease;
+        position: relative;
+      }
+      .upload-zone::before, .upload-zone::after {
+        content: ''; position: absolute;
+        width: 14px; height: 14px;
+        border: 1px solid var(--ink);
+      }
+      .upload-zone::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+      .upload-zone::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+      .upload-zone.is-dragging {
+        background: var(--paper-crease);
+        border-color: var(--sienna);
+      }
+      .upload-inner {
+        display: flex; flex-direction: column;
+        align-items: center; gap: var(--s-3);
+        color: var(--ink-soft);
+      }
+      .upload-mark { color: var(--sienna); }
+      .upload-text {
+        font-family: var(--font-display);
+        font-size: var(--t-lg, 1.125rem);
+        color: var(--ink);
+        margin: 0; font-weight: 500;
+      }
+      .upload-hint {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--ink-mute);
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .text-link {
+        background: none; border: none;
+        color: var(--sienna); cursor: pointer;
+        font: inherit; text-decoration: underline;
+        text-decoration-thickness: 1px; text-underline-offset: 3px;
+        padding: 0;
+      }
+      .text-link:hover { color: var(--ink); }
+
+      .sample-shelf {
+        margin-top: var(--s-5);
+        padding-top: var(--s-5);
+        border-top: 1px solid var(--rule);
+        display: flex; flex-direction: column;
+        align-items: center; gap: var(--s-3);
+        width: 100%;
+      }
+      .shelf-label {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--ink-mute);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+      .sample-buttons {
+        display: flex; flex-wrap: wrap;
+        gap: var(--s-2); justify-content: center;
+        max-width: 720px;
+      }
+      .specimen-btn {
+        background: var(--paper);
+        border: 1px solid var(--rule);
+        padding: 6px 12px;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--ink-soft);
+        cursor: pointer;
+        border-radius: 2px;
+        transition: all 150ms ease;
+        display: inline-flex; align-items: center; gap: 6px;
+      }
+      .specimen-btn:hover {
+        background: var(--sienna-soft);
+        border-color: var(--sienna);
+        color: var(--ink);
+      }
+      .specimen-emoji { font-family: 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif; }
+
+      /* ---- Preview zone ---- */
+      .preview-zone {
+        background: var(--paper-edge);
+        border: 1px solid var(--ink);
+        position: relative;
+      }
+      .preview-zone::before, .preview-zone::after {
+        content: ''; position: absolute;
+        width: 14px; height: 14px;
+        background: var(--paper);
+        border: 1px solid var(--ink);
+      }
+      .preview-zone::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+      .preview-zone::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+      .preview-header {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        align-items: end;
+        gap: var(--s-5);
+        padding: var(--s-4) var(--s-5);
+        border-bottom: 1px solid var(--rule);
+        background: var(--paper);
+      }
+      .preview-meta { display: flex; flex-direction: column; gap: 2px; }
+      .preview-name {
+        font-family: var(--font-display);
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--ink);
+        letter-spacing: -0.01em;
+      }
+      .preview-stats { display: flex; gap: var(--s-2); }
+      .stat-chip {
+        display: flex; flex-direction: column; gap: 2px;
+        padding: 6px 12px;
+        background: var(--paper-edge);
+        border: 1px solid var(--rule);
+        border-radius: 2px;
+        font-family: var(--font-mono);
+        min-width: 80px;
+      }
+      .chip-lbl {
+        font-size: 0.6rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--ink-mute);
+      }
+      .chip-val { font-size: 0.875rem; color: var(--ink); font-weight: 500; }
+
+      .preview-body {
+        display: grid;
+        grid-template-columns: 1.6fr 1fr;
+        gap: 0;
+      }
+      @media (max-width: 900px) { .preview-body { grid-template-columns: 1fr; } }
+
+      .video-frame {
+        background: var(--ink);
+        padding: var(--s-4);
+        display: flex; align-items: center; justify-content: center;
+        position: relative;
+        min-height: 360px;
+      }
+      .video-frame::before {
+        content: ''; position: absolute; inset: 0;
+        background-image: linear-gradient(oklch(0% 0 0 / 0.2) 1px, transparent 1px),
+          linear-gradient(90deg, oklch(0% 0 0 / 0.2) 1px, transparent 1px);
+        background-size: 40px 40px;
+        pointer-events: none;
+      }
+      .video-frame video {
+        max-width: 100%; max-height: 420px;
+        display: block; position: relative; z-index: 1;
+        background: #000;
+      }
+
+      .frame-strip-wrap {
+        padding: var(--s-5);
+        display: flex; flex-direction: column;
+        gap: var(--s-4);
+        border-left: 1px solid var(--rule);
+        background: var(--paper);
+      }
+      @media (max-width: 900px) { .frame-strip-wrap { border-left: 0; border-top: 1px solid var(--rule); } }
+      .frame-strip-head { display: flex; flex-direction: column; gap: 4px; }
+      .strip-explain {
+        font-size: 0.875rem;
+        color: var(--ink-soft);
+        margin: 0; font-style: italic; line-height: 1.5;
+      }
+      .frame-strip {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--s-2);
+      }
+      .frame-slot {
+        aspect-ratio: 4 / 3;
+        background: var(--paper-edge);
+        border: 1px solid var(--rule);
+        padding: 6px 8px;
+        display: flex; flex-direction: column; justify-content: space-between;
+        font-family: var(--font-mono);
+        position: relative;
+        border-radius: 1px;
+      }
+      .frame-slot::after {
+        content: ''; position: absolute;
+        top: 6px; right: 6px;
+        width: 6px; height: 6px;
+        background: var(--sienna);
+        border-radius: 50%;
+        opacity: 0.4;
+      }
+      .frame-num {
+        font-size: 0.65rem;
+        color: var(--ink-mute);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+      .frame-ts {
+        font-size: 0.875rem;
+        color: var(--ink);
+        font-weight: 500;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .run-btn {
+        display: flex;
+        align-items: center; justify-content: space-between;
+        gap: var(--s-3);
+        background: var(--ink); color: var(--paper);
+        border: 1px solid var(--ink);
+        padding: var(--s-3) var(--s-4);
+        font-family: var(--font-display);
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        border-radius: 2px;
+        transition: all 150ms ease;
+        margin-top: var(--s-2);
+      }
+      .run-btn:hover { background: var(--sienna); border-color: var(--sienna); }
+      .run-btn-label { flex: 1; text-align: left; }
+      .run-btn-arrow { font-family: var(--font-mono); font-size: 1.1rem; transition: transform 200ms ease; }
+      .run-btn:hover .run-btn-arrow { transform: translateX(4px); }
+
+      .ghost-btn {
+        background: transparent;
+        color: var(--ink-soft);
+        border: 1px solid var(--rule);
+        padding: 8px 14px;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+        border-radius: 2px;
+        transition: all 150ms ease;
+      }
+      .ghost-btn:hover { color: var(--ink); border-color: var(--ink); background: var(--paper); }
+
+      /* ============================================================
+         STAGE: PROGRESS
+         ============================================================ */
+      .stage-progress { background: var(--paper-edge); border: 1px solid var(--ink); padding: var(--s-6) var(--s-5); position: relative; }
+      .stage-progress::before, .stage-progress::after {
+        content: ''; position: absolute;
+        width: 14px; height: 14px;
+        background: var(--paper-edge);
+        border: 1px solid var(--ink);
+      }
+      .stage-progress::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+      .stage-progress::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+      .progress-head {
+        display: flex; justify-content: space-between; align-items: flex-end;
+        gap: var(--s-5);
+        margin-bottom: var(--s-6);
+        padding-bottom: var(--s-4);
+        border-bottom: 1px solid var(--rule);
+      }
+      .progress-title {
+        font-family: var(--font-display);
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin: 4px 0 0;
+        color: var(--ink);
+        letter-spacing: -0.01em;
+      }
+      .progress-summary { text-align: right; }
+      .progress-status {
+        font-family: var(--font-mono);
+        font-size: 0.875rem;
+        color: var(--ink);
+        font-weight: 500;
+        display: block;
+        margin-top: 2px;
+      }
+
+      .agents-board {
+        list-style: none; margin: 0; padding: 0;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--s-3);
+      }
+      @media (max-width: 700px) { .agents-board { grid-template-columns: 1fr; } }
+
+      .agent-card {
+        background: var(--paper);
+        border: 1px solid var(--rule);
+        padding: var(--s-4);
+        display: flex; flex-direction: column;
+        gap: var(--s-2);
+        border-radius: 2px;
+        transition: all 200ms ease;
+        position: relative;
+      }
+      .agent-card.is-running { border-color: var(--slate-blue); }
+      .agent-card.is-done { border-color: var(--moss); }
+      .agent-card.is-done .agent-icon { color: var(--moss); }
+      .agent-card.is-error { border-color: var(--rust); }
+      .agent-card.is-error .agent-icon { color: var(--rust); }
+
+      .agent-head { display: flex; align-items: center; gap: var(--s-2); }
+      .agent-ord {
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        color: var(--ink-mute);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        font-weight: 600;
+      }
+      .agent-icon { font-size: 1.25rem; color: var(--sienna); line-height: 1; }
+      .agent-name {
+        font-family: var(--font-display);
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--ink);
+        letter-spacing: -0.01em;
+      }
+      .agent-brief {
+        font-size: 0.875rem;
+        color: var(--ink-soft);
+        margin: 0; line-height: 1.5;
+        font-style: italic;
+      }
+      .agent-summary {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--ink);
+        margin: 0;
+        min-height: 1.2em;
+        line-height: 1.4;
+      }
+      .agent-summary:empty::before { content: '—'; color: var(--ink-mute); }
+      .agent-foot {
+        display: flex; justify-content: space-between; align-items: baseline;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .agent-status { color: var(--ink-mute); font-weight: 500; }
+      .agent-card.is-running .agent-status { color: var(--slate-blue); }
+      .agent-card.is-done .agent-status { color: var(--moss); }
+      .agent-card.is-error .agent-status { color: var(--rust); }
+      .agent-latency { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+
+      .agent-bar {
+        height: 3px;
+        background: var(--paper-crease);
+        overflow: hidden;
+        border-radius: 1px;
+        margin-top: var(--s-1);
+      }
+      .agent-bar-fill {
+        height: 100%;
+        background: var(--slate-blue);
+        width: 4%;
+        transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1), background 200ms ease;
+      }
+      .agent-card.is-done .agent-bar-fill { background: var(--moss); }
+      .agent-card.is-error .agent-bar-fill { background: var(--rust); }
+
+      .progress-foot {
+        margin-top: var(--s-6);
+        padding-top: var(--s-4);
+        border-top: 1px solid var(--rule);
+      }
+      .flow-line {
+        font-size: 0.875rem;
+        color: var(--ink-soft);
+        margin: var(--s-2) 0 0;
+        max-width: 72ch;
+        line-height: 1.55;
+      }
+
+      /* ============================================================
+         STAGE: RESULT
+         ============================================================ */
+      .stage-result { display: flex; flex-direction: column; gap: var(--s-5); }
+
+      .result-hero {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: var(--s-6);
+        align-items: start;
+        padding: var(--s-5);
+        background: var(--paper-edge);
+        border: 1px solid var(--ink);
+        position: relative;
+      }
+      .result-hero::before, .result-hero::after {
+        content: ''; position: absolute;
+        width: 14px; height: 14px;
+        background: var(--paper-edge);
+        border: 1px solid var(--ink);
+      }
+      .result-hero::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+      .result-hero::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+      @media (max-width: 760px) { .result-hero { grid-template-columns: 1fr; } }
+
+      .hero-art {
+        aspect-ratio: 4 / 3;
+        background: var(--paper);
+        border: 1px solid var(--rule);
+        display: flex; align-items: center; justify-content: center;
+        position: relative;
+        overflow: hidden;
+        border-radius: 2px;
+      }
+      .hero-art img { width: 100%; height: 100%; object-fit: cover; }
+      .hero-art-cap {
+        position: absolute;
+        bottom: 6px; left: 6px;
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        background: oklch(97% 0.012 80 / 0.92);
+        padding: 2px 6px;
+        border: 1px solid var(--rule);
+        color: var(--ink-soft);
+        border-radius: 2px;
+      }
+      .hero-art-cap a { color: var(--slate-blue); text-decoration: none; }
+      .hero-art-cap a:hover { text-decoration: underline; }
+      .hero-art-fallback {
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: var(--s-2);
+        color: var(--ink-mute);
+        text-align: center;
+        padding: var(--s-4);
+        width: 100%; height: 100%;
+      }
+      .hero-art-loading {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        font-style: italic;
+        color: var(--ink-mute);
+      }
+      .hero-art-fallback .kicker {
+        font-size: 0.6rem;
+        letter-spacing: 0.16em;
+      }
+      .hero-art-name {
+        font-family: var(--font-display);
+        font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+        font-weight: 600;
+        color: var(--ink);
+        line-height: 1.1;
+        letter-spacing: -0.01em;
+      }
+
+      .hero-text { display: flex; flex-direction: column; gap: var(--s-3); }
+      .result-product {
+        font-family: var(--font-display);
+        font-size: clamp(2.25rem, 4.5vw, 3rem);
+        font-weight: 600;
+        margin: 4px 0 0;
+        color: var(--ink);
+        letter-spacing: -0.025em;
+        line-height: 1.05;
+      }
+      .result-summary {
+        font-family: var(--font-body);
+        font-size: 1.125rem;
+        font-style: italic;
+        color: var(--ink-soft);
+        margin: 0;
+        max-width: 56ch;
+        line-height: 1.5;
+      }
+      /* Stats as a single horizontal definition list — looks like a real spec sheet */
+      .hero-stats {
+        display: flex; gap: var(--s-6);
+        flex-wrap: wrap;
+        padding-top: var(--s-3);
+        margin-top: var(--s-2);
+        border-top: 1px solid var(--rule);
+        margin: 0;
+      }
+      .hero-stat { display: flex; flex-direction: column; gap: 2px; margin: 0; }
+      .hero-stat-num {
+        font-family: var(--font-display);
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--ink);
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+      }
+      .hero-stat-unit { font-size: 0.85rem; color: var(--ink-mute); font-weight: 500; margin-left: 1px; }
+      .hero-stat-lbl {
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        color: var(--ink-mute);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-weight: 500;
+      }
+
+      /* ---- Frames strip ---- */
+      .frames-card, .bom-card, .meta-card {
+        background: var(--paper-edge);
+        border: 1px solid var(--rule);
+        border-radius: 2px;
+      }
+      .card-head {
+        padding: var(--s-4);
+        border-bottom: 1px solid var(--rule);
+        background: var(--paper);
+        display: flex; align-items: baseline; justify-content: space-between;
+        gap: var(--s-3);
+      }
+      .card-head h3 {
+        font-family: var(--font-display);
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--ink);
+        margin: 0;
+        letter-spacing: -0.01em;
+      }
+      .card-sub {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--ink-mute);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .frames-strip {
+        padding: var(--s-3);
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: var(--s-2);
+      }
+      @media (max-width: 900px) { .frames-strip { grid-template-columns: repeat(4, 1fr); } }
+      @media (max-width: 540px) { .frames-strip { grid-template-columns: repeat(3, 1fr); } }
+      .frame-tile {
+        margin: 0;
+        background: var(--paper);
+        border: 1px solid var(--rule);
+        border-radius: 2px;
+        overflow: hidden;
+        transition: border-color 150ms ease, box-shadow 200ms ease, transform 200ms ease;
+        cursor: pointer;
+        position: relative;
+      }
+      .frame-tile:hover { border-color: var(--ink-soft); }
+      .frame-tile:hover .frame-tile-img img { transform: scale(1.06); }
+      /* "Click to find parts" hint shown on hover */
+      .frame-tile::after {
+        content: 'find parts \2193';
+        position: absolute;
+        bottom: 24px; left: 50%;
+        transform: translateX(-50%) translateY(4px);
+        font-family: var(--font-mono);
+        font-size: 0.6rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--paper);
+        background: oklch(22% 0.025 50 / 0.85);
+        padding: 2px 6px;
+        border-radius: 2px;
+        opacity: 0;
+        transition: opacity 150ms ease, transform 150ms ease;
+        pointer-events: none;
+        z-index: 2;
+        white-space: nowrap;
+      }
+      .frame-tile:hover::after {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+      .frame-tile.is-empty {
+        border-color: var(--rust);
+        animation: shake 300ms ease;
+      }
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-3px); }
+        75% { transform: translateX(3px); }
+      }
+      .frame-tile.is-empty::after {
+        content: 'no parts here';
+        opacity: 1;
+        background: oklch(58% 0.18 30 / 0.9);
+        transform: translateX(-50%) translateY(0);
+      }
+      .frame-tile-img {
+        aspect-ratio: 16 / 9;
+        background: var(--ink);
+        position: relative;
+        display: flex; align-items: center; justify-content: center;
+        color: oklch(97% 0.012 80 / 0.4);
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        overflow: hidden;
+      }
+      .frame-tile-img img {
+        width: 100%; height: 100%;
+        object-fit: cover; display: block;
+        transition: transform 400ms ease;
+      }
+      .frame-tile-num {
+        position: absolute;
+        top: 4px; left: 4px;
+        background: oklch(22% 0.025 50 / 0.78);
+        color: var(--paper);
+        font-family: var(--font-mono);
+        font-size: 0.6rem;
+        padding: 1px 4px;
+        border-radius: 1px;
+        letter-spacing: 0.08em;
+        z-index: 1;
+      }
+      .frame-tile-cap {
+        padding: 3px 6px;
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        color: var(--ink-soft);
+        text-align: right;
+        background: var(--paper);
+        font-variant-numeric: tabular-nums;
+        border-top: 1px solid var(--rule-soft);
+      }
+      .frame-tile-ts {
+        font-family: var(--font-mono);
+        font-variant-numeric: tabular-nums;
+      }
+      .frame-tile.is-highlighted {
+        border-color: var(--sienna);
+        box-shadow: 0 0 0 2px var(--sienna-soft);
+        transition: border-color 200ms ease, box-shadow 200ms ease;
+      }
+
+      /* ---- BOM (table layout) ---- */
+      .bom-tree { padding: 0; display: flex; flex-direction: column; gap: var(--s-5); }
+      .bom-group {
+        border: 1px solid var(--rule);
+        background: var(--paper);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .bom-group-head {
+        display: flex; align-items: baseline; justify-content: space-between;
+        padding: var(--s-3) var(--s-4);
+        border-bottom: 1px solid var(--rule);
+        background: var(--paper-crease);
+        gap: var(--s-3);
+      }
+      .bom-group-head h4 {
+        font-family: var(--font-display);
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: var(--ink);
+        margin: 0;
+        letter-spacing: -0.005em;
+      }
+      .bom-group-count {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        color: var(--ink-mute);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        flex-shrink: 0;
+      }
+
+      /* ---- Part card: horizontal layout for scannability ----
+         ┌──────────────────────────────────────────────────────────┐
+         │ [IMG]  Part Name                       1×                │
+         │        short note · material            bomwiki ↗        │
+         │        ████████████░░ 95% conf     ● frame 03 4.2s      │
+         └──────────────────────────────────────────────────────────┘
+         Image · name · meta line · confidence bar · frame proof,
+         all in one tight horizontal card. */
+      .part-art.has-image {
+        border-color: var(--ink-soft);
+      }
+      .part-card:hover .part-art.has-image {
+        border-color: var(--sienna);
+      }
+      /* ---- BOM table (real <table> for scannability) ----
+         A spec-sheet feel: each row is one part, columns align across
+         sub-assemblies so the eye can compare quantities, materials,
+         confidence, and bomwiki links in a single glance. */
+:global(.bom-table-wrap) {
+        overflow-x: auto;
+      }
+:global(.bom-table) {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+        background: var(--paper);
+        /* Fixed layout: column widths are honored, content wraps inside cells
+           instead of pushing the table wider. Predictable across rows. */
+        table-layout: fixed;
+      }
+:global(.bom-table thead th) {
+        text-align: left;
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--ink-mute);
+        font-weight: 600;
+        padding: 10px 10px;
+        background: var(--paper-crease);
+        border-bottom: 1px solid var(--rule);
+        white-space: nowrap;
+        vertical-align: bottom;
+      }
+:global(.bom-table thead th.col-num) { text-align: right; width: 56px; }
+:global(.bom-table thead th.col-material) { width: 18%; }
+:global(.bom-table thead th.col-conf) { text-align: right; width: 130px; }
+:global(.bom-table thead th.col-frame) { width: 130px; }
+:global(.bom-table thead th.col-bomwiki) { text-align: right; width: 110px; }
+      /* Part column takes whatever's left (auto, min-widthed) */
+:global(.bom-table thead th.col-part) { width: auto; }
+
+:global(.bom-table tbody td) {
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--rule-soft);
+        vertical-align: middle;
+        /* Allow long words to break rather than overflow the cell */
+        overflow-wrap: anywhere;
+      }
+:global(.bom-table tbody tr:last-child td) { border-bottom: 0; }
+:global(.bom-table tbody tr:hover) { background: var(--paper-edge); }
+:global(.bom-table tbody tr.is-highlighted) {
+        background: var(--sienna-soft);
+        box-shadow: inset 3px 0 0 var(--sienna);
+        animation: row-pop 700ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      @keyframes row-pop {
+        0%   { background: oklch(58% 0.18 35 / 0.25); }
+        100% { background: var(--sienna-soft); }
+      }
+
+      /* Column: Part (name + note + art) */
+      :global(.bom-table td.col-part),
+:global(.bom-table th.col-part) { min-width: 220px; }
+:global(.bom-part-inner) {
+        display: flex; align-items: flex-start; gap: 10px;
+        min-width: 0;
+      }
+:global(.bom-art) {
+        background: var(--paper-edge);
+        position: relative;
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden;
+        width: 40px; height: 40px;
+        border: 1px solid var(--rule);
+        border-radius: 1px;
+        flex-shrink: 0;
+      }
+:global(.bom-art img) { width: 100%; height: 100%; object-fit: cover; }
+:global(.bom-art-fallback) {
+        display: flex; align-items: center; justify-content: center;
+        width: 100%; height: 100%;
+        color: var(--ink-mute);
+        background:
+          repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 3px,
+            oklch(91% 0.022 78 / 0.5) 3px,
+            oklch(91% 0.022 78 / 0.5) 4px
+          );
+      }
+:global(.bom-art-initials) {
+        font-family: var(--font-display);
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--ink-soft);
+        letter-spacing: 0.02em;
+      }
+:global(.bom-text) { min-width: 0; flex: 1; }
+:global(.bom-name) {
+        font-family: var(--font-display);
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--ink);
+        line-height: 1.25;
+        letter-spacing: -0.005em;
+        word-break: break-word;
+        /* Keep name to a single line; truncate if too long. The full name
+           is still readable on hover via the title attribute. */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+      }
+:global(.bom-note) {
+        font-size: 0.72rem;
+        color: var(--ink-soft);
+        font-style: italic;
+        line-height: 1.35;
+        margin-top: 2px;
+        /* Note wraps to 2 lines max — keeps row height predictable */
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      /* Multilingual evidence line — the "proof of looking" strip.
+         Rendered under the part name only when the Detector read a
+         real nameplate / decal. Layout: [「三菱重工業」 JP → "Mitsubishi..." · confirmed manufacturer]
+         The "「」" marks + serif foreign text give it a typewriter-card
+         feel; everything is small + muted so it doesn't fight the part
+         name above it. Font fallback covers CJK / Arabic / Devanagari
+         via OS default fonts. */
+  :global(.bom-evidence) {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0 7px;
+        margin-top: 5px;
+        padding: 4px 8px;
+        background: oklch(78% 0.08 40 / 0.22);
+        border-left: 2px solid var(--sienna);
+        border-radius: 0 2px 2px 0;
+        font-family: var(--font-body);
+        font-size: 0.74rem;
+        line-height: 1.4;
+        color: var(--ink-soft);
+        max-width: 44ch;
+      }
+  :global(.bom-evidence::before) {
+        content: 'label read';
+        font-family: var(--font-mono);
+        font-size: 0.58rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--sienna);
+        font-weight: 600;
+        align-self: center;
+        margin-right: 2px;
+        flex-shrink: 0;
+      }
+  :global(.bom-ev-quote) {
+        display: inline-flex;
+        align-items: baseline;
+        font-family: 'Source Serif 4', 'Noto Serif CJK', 'Noto Sans CJK', 'PingFang SC', 'Hiragino Sans', serif;
+        font-weight: 600;
+        color: var(--ink);
+      }
+  :global(.bom-ev-mark) {
+        color: var(--ink-mute);
+        font-weight: 400;
+        margin: 0 1px;
+      }
+  :global(.bom-ev-text) {
+        font-style: italic;
+        white-space: pre-wrap;
+        /* Allow long serials to break; keep CJK from overflowing the cell */
+        overflow-wrap: anywhere;
+      }
+  :global(.bom-ev-lang) {
+        font-family: var(--font-mono);
+        font-size: 0.6rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        align-self: center;
+      }
+  :global(.bom-ev-arrow) {
+        color: var(--ink-mute);
+        align-self: center;
+      }
+  :global(.bom-ev-translation) {
+        font-style: italic;
+        color: var(--ink-soft);
+        font-weight: 500;
+      }
+  :global(.bom-ev-infl) {
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        color: var(--ink-mute);
+        flex-basis: 100%;
+        margin-top: 1px;
+      }
+  @media (max-width: 540px) {
+      :global(.bom-evidence) { max-width: 100%; font-size: 0.7rem; }
+      }
+
+      /* Column: Qty */
+:global(.bom-table td.col-num) {
+        text-align: right;
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 1rem;
+        color: var(--ink);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* Column: Material */
+:global(.bom-table td.col-material) {
+        font-size: 0.78rem;
+        color: var(--ink-soft);
+        font-family: var(--font-mono);
+      }
+:global(.bom-empty) { color: var(--ink-mute); font-style: italic; }
+
+      /* Column: Confidence (bar + percentage) */
+:global(.bom-conf) {
+        display: flex; align-items: center; gap: 8px;
+        justify-content: flex-end;
+      }
+:global(.bom-conf-track) {
+        width: 70px;
+        height: 4px;
+        background: var(--paper-crease);
+        border-radius: 1px;
+        overflow: hidden;
+      }
+:global(.bom-conf-fill) {
+        height: 100%;
+        transition: width 500ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+:global(.bom-conf-fill.bom-conf-good) { background: var(--moss); }
+:global(.bom-conf-fill.bom-conf-mid) { background: var(--amber); }
+:global(.bom-conf-fill.bom-conf-low) { background: var(--rust); }
+:global(.bom-conf-label) {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        color: var(--ink);
+        font-variant-numeric: tabular-nums;
+        font-weight: 500;
+        min-width: 32px;
+        text-align: right;
+      }
+
+      /* Column: Seen in (frame proof pill) */
+:global(.bom-proof) {
+        display: inline-flex; align-items: center; gap: 5px;
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        color: var(--ink-soft);
+        background: var(--paper);
+        border: 1px solid var(--rule);
+        padding: 3px 8px;
+        border-radius: 2px;
+        cursor: pointer;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.02em;
+        transition: all 150ms ease;
+        white-space: nowrap;
+      }
+:global(.bom-proof:hover) {
+        background: var(--paper-edge);
+        border-color: var(--sienna);
+        color: var(--ink);
+      }
+:global(.bom-proof-dot) {
+        width: 6px; height: 6px;
+        background: var(--sienna);
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+:global(.bom-proof-ts) { color: var(--ink-mute); }
+
+      /* Column: bomwiki link */
+:global(.bom-table td.col-bomwiki) { text-align: right; }
+:global(.bom-link) {
+        display: inline-flex; align-items: center;
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        color: var(--paper);
+        background: var(--ink);
+        text-decoration: none;
+        padding: 3px 8px;
+        border-radius: 2px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 500;
+        white-space: nowrap;
+        transition: background 150ms ease;
+      }
+:global(.bom-link:hover) { background: var(--sienna); }
+:global(.bom-link-empty) {
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        color: var(--ink-mute);
+        font-style: italic;
+        text-transform: none;
+        letter-spacing: 0.02em;
+        padding: 2px 6px;
+        background: transparent;
+        border: 1px dashed var(--rule);
+        border-radius: 2px;
+        white-space: nowrap;
+      }
+
+      /* Sticky active-frame bar at the top of the BOM card */
+:global(.active-frame-bar) {
+        display: flex; align-items: center; gap: 10px;
+        padding: 8px 12px;
+        background: var(--sienna-soft);
+        border-bottom: 1px solid var(--sienna);
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        color: var(--ink);
+        position: sticky;
+        top: 0;
+        z-index: 5;
+      }
+:global(.active-frame-bar[hidden]) { display: none; }
+:global(.active-frame-dot) {
+        width: 8px; height: 8px;
+        background: var(--sienna);
+        border-radius: 50%;
+        flex-shrink: 0;
+        animation: dot-pulse 1.6s ease-in-out infinite;
+      }
+      @keyframes dot-pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50%      { opacity: 0.5; transform: scale(0.8); }
+      }
+:global(.active-frame-label) {
+        color: var(--ink-soft);
+        text-transform: uppercase;
+        font-size: 0.65rem;
+        letter-spacing: 0.1em;
+      }
+:global(.active-frame-id) {
+        font-weight: 600;
+        color: var(--ink);
+      }
+:global(.active-frame-ts) {
+        color: var(--ink-soft);
+        font-variant-numeric: tabular-nums;
+      }
+:global(.active-frame-count) {
+        color: var(--ink-soft);
+        font-size: 0.68rem;
+        margin-left: auto;
+        padding: 2px 8px;
+        background: var(--paper);
+        border: 1px solid var(--sienna);
+        border-radius: 2px;
+      }
+:global(.active-frame-clear) {
+        background: transparent;
+        border: 1px solid var(--sienna);
+        color: var(--sienna);
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        padding: 3px 8px;
+        border-radius: 2px;
+        cursor: pointer;
+        transition: all 150ms ease;
+      }
+:global(.active-frame-clear:hover) {
+        background: var(--sienna);
+        color: var(--paper);
+      }
+
+      /* Frame tile sticky "selected" state (matches the sticky bar) */
+:global(.frame-tile.is-selected) {
+        border-color: var(--sienna);
+        box-shadow: 0 0 0 2px var(--sienna);
+      }
+:global(.frame-tile.is-pulsing) {
+        animation: tile-pulse 600ms ease;
+      }
+      @keyframes tile-pulse {
+        0%   { transform: scale(1); box-shadow: 0 0 0 0 oklch(58% 0.18 35 / 0.5); }
+        50%  { transform: scale(1.04); box-shadow: 0 0 0 6px oklch(58% 0.18 35 / 0.2); }
+        100% { transform: scale(1); box-shadow: 0 0 0 2px var(--sienna); }
+      }
+
+      /* ---- Bottom row ---- */
+      .result-bottom {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--s-4);
+      }
+      @media (max-width: 760px) { .result-bottom { grid-template-columns: 1fr; } }
+
+      .geometry-grid {
+        padding: var(--s-3) var(--s-4) var(--s-4);
+        display: flex; flex-direction: column;
+        gap: var(--s-2);
+      }
+      .geo-row {
+        display: grid;
+        grid-template-columns: 120px 1fr;
+        gap: var(--s-3);
+        padding: 6px 0;
+        border-bottom: 1px dashed var(--rule-soft);
+        font-size: 0.875rem;
+      }
+      .geo-row:last-child { border-bottom: 0; }
+      .geo-k {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--ink-mute);
+        font-weight: 600;
+        align-self: center;
+      }
+      .geo-v { color: var(--ink); font-weight: 500; }
+      .empty-line { color: var(--ink-mute); font-style: italic; margin: 0; }
+
+      .meta-notes {
+        margin: 0;
+        padding: var(--s-3) var(--s-4) var(--s-4);
+        font-size: 0.875rem;
+        color: var(--ink-soft);
+        line-height: 1.55;
+        font-style: italic;
+      }
+
+      .result-actions { display: flex; gap: var(--s-2); }
+
+      /* ---- Focus rings ---- */
+      button:focus-visible, a:focus-visible {
+        outline: 2px solid var(--sienna);
+        outline-offset: 3px;
+      }
+
+      /* ---- Subtle entrance ---- */
+      @media (prefers-reduced-motion: no-preference) {
+        .stage { animation: fade-in 400ms ease both; }
+      }
+      @keyframes fade-in {
+        from { opacity: 0; transform: translateY(4px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+    </style>
+  </body>
+</html>
